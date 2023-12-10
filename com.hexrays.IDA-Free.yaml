@@ -1,0 +1,60 @@
+app-id: com.hexrays.IDA-Free
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: ida64
+separate-locales: false
+finish-args:
+  - --persist=.idapro
+  - --share=network
+  - --socket=x11
+  - --share=ipc
+  # the default runtime doesn't ship the libs required for qt's help reader
+  - --env=LD_LIBRARY_PATH=/usr/lib:/app/idafree-8.3
+  # these two permissions suck, but IDA can't handle files passed to it
+  # via portal, neither when opening, nor when saving.
+  # I'm not sure if the issue is with IDA or with my understanding of portals,
+  # probably both :^)
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-download
+build-options:
+  no-debuginfo: true
+cleanup:
+  - 'idafree83_linux.run'
+modules:
+  - name: ida64
+    buildsystem: simple
+    build-commands:
+      - chmod +x idafree83_linux.run
+      - ./idafree83_linux.run --mode unattended --prefix /app/idafree-8.3
+      - install -Dm 644 idafree-8.3.desktop /app/share/applications/com.hexrays.IDA-Free.desktop
+      - install -Dm 644 /app/idafree-8.3/appico64.png /app/share/icons/hicolor/128x128/apps/com.hexrays.IDA-Free.png
+      - install -Dm 755 idafree-8.3.sh /app/bin/ida64
+    sources:
+      - type: file
+        url: https://out7.hex-rays.com/files/idafree83_linux.run
+        sha256: ab93d91432f2d4f01622be64ee5cebbc9e5c6bfc92f573a402d9469d2de00a82
+        dest-filename: idafree83_linux.run
+        only-arches: [x86_64]
+      - type: file
+        path: idafree-8.3.desktop
+      - type: file
+        path: idafree-8.3.sh
+  # this is *only* required to get /app/idafree-8.3/assistant to work because
+  # it depends on a couple of libraries provided by mit-krb.
+  # if there's a better way to get those into the flatpak, please let me know
+  - name: kerberos
+    buildsystem: simple
+    build-commands:
+      - tar xf krb5-1.21.2.tar.gz
+      - cd krb5-1.21.2/src && ./configure
+      - cd krb5-1.21.2/src && make -j
+      - cd krb5-1.21.2/src && make install DESTDIR=/app/mit-krb
+      - mv /app/mit-krb/usr/local/lib/* /app/idafree-8.3/
+    cleanup:
+      - 'krb5*'
+      - '/app/mit-krb'
+    sources:
+    - type: file
+      url: https://web.mit.edu/kerberos/dist/krb5/1.21/krb5-1.21.2.tar.gz
+      sha256: 9560941a9d843c0243a71b17a7ac6fe31c7cebb5bce3983db79e52ae7e850491

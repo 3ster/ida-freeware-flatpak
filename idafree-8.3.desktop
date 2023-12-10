@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Exec=/app/bin/ida64 %f
+Name=IDA Freeware
+Icon=com.hexrays.IDA-Free
+Terminal=false
+StartupNotify=true
